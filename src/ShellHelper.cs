@@ -211,7 +211,7 @@ namespace System.IO.Compression
                 {
                     if (IsFolder)
                     {
-                        return new Folder(InvokeMethod("GetFolder"), Path);
+                        return new Folder(GetProperty<object>("GetFolder"), Path);
                     }
 
                     return null;

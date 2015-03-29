@@ -287,7 +287,7 @@ namespace System.IO.Compression
             if (string.IsNullOrEmpty(sourceFileName))
                 throw new ArgumentNullException("sourceFileName");
             if (_mode == ZipArchiveMode.Read)
-                throw new ArgumentOutOfRangeException("entryName", "Current mode doesn't support items creation");
+                throw new NotSupportedException("Current mode doesn't support items creation");
             if (string.IsNullOrEmpty(entryName))
                 throw new ArgumentNullException("entryName");
 
@@ -321,7 +321,7 @@ namespace System.IO.Compression
         public ZipArchiveEntry CreateEntry(string entryName)
         {
             if (_mode == ZipArchiveMode.Read)
-                throw new ArgumentOutOfRangeException("entryName", "Current mode doesn't support items creation");
+                throw new NotSupportedException("Current mode doesn't support items creation");
             if (string.IsNullOrEmpty(entryName))
                 throw new ArgumentNullException("entryName");
 

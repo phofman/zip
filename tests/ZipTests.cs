@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.IO.Compression;
 using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -410,6 +411,16 @@ namespace UnitTests
 
             Assert.IsTrue(Directory.Exists(targetFolder), "Missing the extraction area");
             Assert.IsTrue(Files(targetFolder).Length > 0, "Invalid number of extracted files");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(NotSupportedException))]
+        public void TryToUpdateZipArchiveOpenedForRead()
+        {
+            using (var archive = ZipFile.OpenRead(Content("few_content.zip")))
+            {
+                archive.CreateEntry("test1.zip");
+            }
         }
     }
 }

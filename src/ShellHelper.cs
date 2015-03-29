@@ -41,8 +41,44 @@ namespace System.IO.Compression
             {
                 get { return _o; }
             }
+
+            /// <summary>
+            /// Invokes the method with specified name.
+            /// </summary>
+            protected T InvokeMethod<T>(string name, params object[] args)
+            {
+                return (T) WrappedType.InvokeMember(name, BindingFlags.InvokeMethod, null, WrappedObject, args != null && args.Length == 0 ? null : args);
+            }
+
+            /// <summary>
+            /// Invokes the method with specified name.
+            /// </summary>
+            protected object InvokeMethod(string name, params object[] args)
+            {
+                return WrappedType.InvokeMember(name, BindingFlags.InvokeMethod, null, WrappedObject, args != null && args.Length == 0 ? null : args);
+            }
+
+            /// <summary>
+            /// Gets the value of specified property.
+            /// </summary>
+            protected T GetProperty<T>(string name)
+            {
+                return (T) WrappedType.InvokeMember(name, BindingFlags.GetProperty, null, WrappedObject, null);
+            }
+
+            /// <summary>
+            /// Sets the value of specified property.
+            /// </summary>
+            protected void SetProperty(string name, object value)
+            {
+                WrappedType.InvokeMember(name, BindingFlags.SetProperty, null, WrappedObject, new object[] { value });
+            }
         }
 
+        /// <summary>
+        /// Wrapper class for the Shell Folder COM class.
+        /// https://msdn.microsoft.com/en-us/library/windows/desktop/bb787868(v=vs.85).aspx
+        /// </summary>
         public class Folder : ReflectionWrapper
         {
             public Folder(object o, string path)
@@ -74,7 +110,7 @@ namespace System.IO.Compression
 
             public FolderItems Items()
             {
-                return new FolderItems(WrappedType.InvokeMember("Items", BindingFlags.InvokeMethod, null, WrappedObject, null));
+                return new FolderItems(InvokeMethod("Items"));
             }
 
             public void Copy(ReflectionWrapper items, bool waitForCompletion, Action<Folder> completionHandler)
@@ -83,7 +119,7 @@ namespace System.IO.Compression
                 const int RespondYesToAllDialogs = 16;
                 const int NoUiOnError = 1024;
 
-                WrappedType.InvokeMember("CopyHere", BindingFlags.InvokeMethod, null, WrappedObject, new[] { items.WrappedObject, NoProgressDialog | RespondYesToAllDialogs | NoUiOnError });
+                InvokeMethod("CopyHere", items.WrappedObject, NoProgressDialog | RespondYesToAllDialogs | NoUiOnError);
                 if (waitForCompletion)
                 {
                     Wait();
@@ -115,6 +151,10 @@ namespace System.IO.Compression
             }
         }
 
+        /// <summary>
+        /// Wrapper class for the Shell FolderItems COM class.
+        /// https://msdn.microsoft.com/en-us/library/windows/desktop/bb787800(v=vs.85).aspx
+        /// </summary>
         public class FolderItems : ReflectionWrapper
         {
             public FolderItems(object o)
@@ -124,15 +164,19 @@ namespace System.IO.Compression
 
             public int Count
             {
-                get { return (int)WrappedType.InvokeMember("Count", BindingFlags.GetProperty, null, WrappedObject, null); }
+                get { return GetProperty<int>("Count"); }
             }
 
             public FolderItem this[int index]
             {
-                get { return new FolderItem(WrappedType.InvokeMember("Item", BindingFlags.InvokeMethod, null, WrappedObject, new object[] { index })); }
+                get { return new FolderItem(InvokeMethod("Item", index)); }
             }
         }
 
+        /// <summary>
+        /// Wrapper class for the Shell FolderItem COM class.
+        /// https://msdn.microsoft.com/en-us/library/windows/desktop/bb787810(v=vs.85).aspx
+        /// </summary>
         public class FolderItem : ReflectionWrapper
         {
             public FolderItem(object o)
@@ -142,23 +186,23 @@ namespace System.IO.Compression
 
             public bool IsFolder
             {
-                get { return (bool) WrappedType.InvokeMember("IsFolder", BindingFlags.GetProperty, null, WrappedObject, null); }
+                get { return GetProperty<bool>("IsFolder"); }
             }
 
             public string Name
             {
-                get { return (string) WrappedType.InvokeMember("Name", BindingFlags.GetProperty, null, WrappedObject, null); }
-                set { WrappedType.InvokeMember("Name", BindingFlags.SetProperty, null, WrappedObject, new object[] { value }); }
+                get { return GetProperty<string>("Name"); }
+                set { SetProperty("Name", value); }
             }
 
             public long Size
             {
-                get { return (int) WrappedType.InvokeMember("Size", BindingFlags.GetProperty, null, WrappedObject, null); }
+                get { return GetProperty<int>("Size"); }
             }
 
             public string Path
             {
-                get { return (string) WrappedType.InvokeMember("Path", BindingFlags.GetProperty, null, WrappedObject, null); }
+                get { return GetProperty<string>("Path"); }
             }
 
             public Folder AsFolder
@@ -167,7 +211,7 @@ namespace System.IO.Compression
                 {
                     if (IsFolder)
                     {
-                        return new Folder(WrappedType.InvokeMember("GetFolder", BindingFlags.GetProperty, null, WrappedObject, null), Path);
+                        return new Folder(InvokeMethod("GetFolder"), Path);
                     }
 
                     return null;
@@ -202,7 +246,7 @@ namespace System.IO.Compression
                 throw new ArgumentOutOfRangeException("path", "Requested path doesn't exist");
 
             var shellAppType = Type.GetTypeFromProgID("Shell.Application");
-            Object shell = Activator.CreateInstance(shellAppType);
+            var shell = Activator.CreateInstance(shellAppType);
             return new Folder(shellAppType.InvokeMember("NameSpace", BindingFlags.InvokeMethod, null, shell, new object[] { path }), path);
         }
 

@@ -44,6 +44,9 @@ namespace UnitTests
         /// </summary>
         private string Content(string fileName)
         {
+            if (string.IsNullOrEmpty(fileName))
+                return ContentFolder;
+
             return Path.Combine(ContentFolder, fileName);
         }
 
@@ -388,6 +391,25 @@ namespace UnitTests
 
             Assert.IsTrue(File.Exists(InputZipFileName), "Missing the file, that should be created!");
             Assert.IsTrue(new FileInfo(InputZipFileName).Length > 0, "File shouldn't be empty!");
+        }
+
+        [TestMethod]
+        public void CreateZipFileFromFolder()
+        {
+            ZipFile.CreateFromDirectory(Content(null), InputZipFileName, CompressionLevel.Optimal, true);
+
+            Assert.IsTrue(File.Exists(InputZipFileName), "Missing the file, that should be created!");
+            Assert.IsTrue(new FileInfo(InputZipFileName).Length > 0, "File shouldn't be empty!");
+        }
+
+        [TestMethod]
+        public void ExtractZipFileIntoFolderFromPredefinedArchive()
+        {
+            var targetFolder = Output("zip-extract5");
+            ZipFile.ExtractToDirectory(Content("few_content.zip"), targetFolder);
+
+            Assert.IsTrue(Directory.Exists(targetFolder), "Missing the extraction area");
+            Assert.IsTrue(Files(targetFolder).Length > 0, "Invalid number of extracted files");
         }
     }
 }

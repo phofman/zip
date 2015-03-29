@@ -67,7 +67,7 @@
     <Content Include="TestContent\app.cfg" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="TestContent\few_content.zip" />
+    <Content Include="TestContent\few_content.zip" />
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

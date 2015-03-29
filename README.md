@@ -14,7 +14,7 @@ The initial idea was presented on [CodeProject.com](http://www.codeproject.com/A
 
 What I did? I removed the dependency to Shell32 library by using reflection. Don't worry, this shouldn't hit the performance much. It's just used in few places to communicate and pass parameters (paths and flags). The whole compression and decompression is executed on the native Windows Shell side, what is really fast. Finally, having a way to manipulate files and ZIP archive's internals I exposed it in the same way .NET 4.5 does in [ZipArchive](https://msdn.microsoft.com/en-us/library/system.io.compression.ziparchive(v=vs.110).aspx)/[ZipArchiveEntry](https://msdn.microsoft.com/en-us/library/system.io.compression.ziparchiveentry(v=vs.110).aspx)/[ZipFile](https://msdn.microsoft.com/en-us/library/system.io.compression.zipfile(v=vs.110).aspx) classes.
 
-# Diffircences
+# Differences
 There are few quirks and differences, that you should be familiar with:
  * if the whole process takes more than few seconds, Windows will show a progress UI and give the user ability to cancel ZIP manipulation
  * the whole compression/decompression is executed by the background thread in Windows Shell and there was no easy way to determin, when it completes

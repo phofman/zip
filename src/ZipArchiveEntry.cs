@@ -112,6 +112,18 @@
         {
             if (!string.IsNullOrEmpty(TempLocalPath))
                 File.Delete(TempLocalPath);
+
+            // if this is the last file withing directory, remove the directory to avoid runtime UI with errors:
+            var parentFolder = Path.GetDirectoryName(TempLocalPath);
+            if (!string.IsNullOrEmpty(parentFolder))
+            {
+                var files = Directory.GetFiles(parentFolder, "*", SearchOption.AllDirectories);
+                if (files == null || files.Length == 0)
+                {
+                    Directory.Delete(parentFolder, true);
+                }
+            }
+
             TempLocalPath = null;
             Archive.Delete(this);
         }

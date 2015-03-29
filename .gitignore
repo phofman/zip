@@ -1,0 +1,10 @@
+
+# User configuration files
+CodeTitans.ZipLib.v12.suo
+
+# Build temporary output folders
+src/bin/
+src/obj/
+tests/bin/
+tests/obj/
+

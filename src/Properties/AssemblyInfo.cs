@@ -1,5 +1,24 @@
-﻿using System.Reflection;
-using System.Runtime.CompilerServices;
+﻿#region License
+/*
+    Copyright (c) 2015, Paweł Hofman (CodeTitans)
+    All Rights Reserved.
+
+    Licensed under MIT License
+    For more information please visit:
+
+    https://github.com/phofman/zip/blob/master/LICENSE
+        or
+    http://opensource.org/licenses/MIT
+
+
+    For latest source code, documentation, samples
+    and more information please visit:
+
+    https://github.com/phofman/zip
+*/
+#endregion
+
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following 
@@ -10,7 +29,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("CodeTitans.ZipLib")]
-[assembly: AssemblyCopyright("Copyright ©  2015")]
+[assembly: AssemblyCopyright("Copyright © 2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

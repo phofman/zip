@@ -2,6 +2,7 @@
 {
     /// <summary>
     /// Representation of a single item inside a ZIP archive.
+    /// https://msdn.microsoft.com/en-us/library/system.io.compression.ziparchiveentry(v=vs.110).aspx
     /// </summary>
     public sealed class ZipArchiveEntry
     {
@@ -92,6 +93,9 @@
             return string.CompareOrdinal(item.FullName, FullName) == 0;
         }
 
+        /// <summary>
+        /// Opens the entry from the zip archive.
+        /// </summary>
         public Stream Open()
         {
             switch (Archive.Mode)
@@ -108,26 +112,18 @@
             }
         }
 
+        /// <summary>
+        /// Deletes the entry from the zip archive.
+        /// </summary>
         public void Delete()
         {
-            if (!string.IsNullOrEmpty(TempLocalPath))
-                File.Delete(TempLocalPath);
-
-            // if this is the last file withing directory, remove the directory to avoid runtime UI with errors:
-            var parentFolder = Path.GetDirectoryName(TempLocalPath);
-            if (!string.IsNullOrEmpty(parentFolder))
-            {
-                var files = Directory.GetFiles(parentFolder, "*", SearchOption.AllDirectories);
-                if (files == null || files.Length == 0)
-                {
-                    Directory.Delete(parentFolder, true);
-                }
-            }
-
-            TempLocalPath = null;
             Archive.Delete(this);
+            TempLocalPath = null;
         }
 
+        /// <summary>
+        /// Extracts an entry in the zip archive to a file.
+        /// </summary>
         public void ExtractToFile(string destinationFileName)
         {
             if (string.IsNullOrEmpty(destinationFileName))
@@ -136,6 +132,9 @@
             Archive.ExtractToFile(this, destinationFileName, false);
         }
 
+        /// <summary>
+        /// Extracts an entry in the zip archive to a file.
+        /// </summary>
         public void ExtractToFile(string destinationFileName, bool overwrite)
         {
             if (string.IsNullOrEmpty(destinationFileName))

@@ -107,11 +107,17 @@ namespace System.IO.Compression
 
         #region Properties
 
+        /// <summary>
+        /// Gets a value that describes the type of action the archive can perform on entries.
+        /// </summary>
         public ZipArchiveMode Mode
         {
             get { return _mode; }
         }
 
+        /// <summary>
+        /// Gets the collection of entries that are currently in the archive.
+        /// </summary>
         public ReadOnlyCollection<ZipArchiveEntry> Entries
         {
             get;
@@ -284,6 +290,9 @@ namespace System.IO.Compression
 
         #endregion
 
+        /// <summary>
+        /// Archives a file by compressing it and adding it to the ZIP.
+        /// </summary>
         public ZipArchiveEntry CreateEntryFromFile(string sourceFileName, string entryName, CompressionLevel compressionLevel)
         {
             if (string.IsNullOrEmpty(sourceFileName))
@@ -304,11 +313,17 @@ namespace System.IO.Compression
             return Add(new ZipArchiveEntry(this, null, destPath, entryName, new FileInfo(destPath).Length));
         }
 
+        /// <summary>
+        /// Archives a file by compressing it and adding it to the ZIP.
+        /// </summary>
         public ZipArchiveEntry CreateEntryFromFile(string sourceFileName, string entryName)
         {
             return CreateEntryFromFile(sourceFileName, entryName, CompressionLevel.Optimal);
         }
 
+        /// <summary>
+        /// Extracts all the files in the ZIP archive to specified directory.
+        /// </summary>
         public void ExtractToDirectory(string destinationDirectoryName)
         {
             if (string.IsNullOrEmpty(destinationDirectoryName))
@@ -320,7 +335,18 @@ namespace System.IO.Compression
             CopyAddedFiles(targetFolder);
         }
 
+        /// <summary>
+        /// Creates an empty entry that has the specified path and entry name in the archive.
+        /// </summary>
         public ZipArchiveEntry CreateEntry(string entryName)
+        {
+            return CreateEntry(entryName, CompressionLevel.Optimal);
+        }
+
+        /// <summary>
+        /// Creates an empty entry that has the specified path and entry name in the archive.
+        /// </summary>
+        public ZipArchiveEntry CreateEntry(string entryName, CompressionLevel compressionLevel)
         {
             if (_mode == ZipArchiveMode.Read)
                 throw new NotSupportedException("Current mode doesn't support items creation");
@@ -342,6 +368,20 @@ namespace System.IO.Compression
         {
             if (item != null)
             {
+                if (!string.IsNullOrEmpty(item.TempLocalPath))
+                    File.Delete(item.TempLocalPath);
+
+                // if this is the last file withing directory, remove the directory to avoid runtime UI with errors:
+                var parentFolder = Path.GetDirectoryName(item.TempLocalPath);
+                if (!string.IsNullOrEmpty(parentFolder))
+                {
+                    var files = Directory.GetFiles(parentFolder, "*", SearchOption.AllDirectories);
+                    if (files == null || files.Length == 0)
+                    {
+                        Directory.Delete(parentFolder, true);
+                    }
+                }
+
                 bool removedFromAdd = _toAdd.Remove(item);
                 bool removedFromExisting = _existing.Remove(item);
 

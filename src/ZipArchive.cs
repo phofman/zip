@@ -234,6 +234,14 @@ namespace System.IO.Compression
             }
 
             _toAdd.Add(item);
+
+            existingIndex = Find(_existing, item);
+            if (existingIndex > 0)
+            {
+                _existing.RemoveAt(existingIndex);
+            }
+
+            _existing.Add(item);
             return item;
         }
 
@@ -332,7 +340,10 @@ namespace System.IO.Compression
         {
             if (item != null)
             {
-                if (_toAdd.Remove(item))
+                bool removedFromAdd = _toAdd.Remove(item);
+                bool removedFromExisting = _existing.Remove(item);
+
+                if (removedFromAdd || removedFromExisting)
                     return;
 
                 // it's not supported to delete files from existing ZIP:

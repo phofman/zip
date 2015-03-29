@@ -37,11 +37,19 @@ namespace UnitTests
 
         #endregion
 
+        #region Helper Methods
+
+        /// <summary>
+        /// Gets the file from the 'Content' folder of test input data.
+        /// </summary>
         private string Content(string fileName)
         {
             return Path.Combine(ContentFolder, fileName);
         }
 
+        /// <summary>
+        /// Gets the name for produced output, by concatenating paths.
+        /// </summary>
         private string Output(string name, params string[] names)
         {
             var path = name.StartsWith(OutputFolder) ? name : Path.Combine(OutputFolder, name);
@@ -52,6 +60,41 @@ namespace UnitTests
             }
             return path;
         }
+
+        /// <summary>
+        /// Removes specified file or folder.
+        /// </summary>
+        private void Delete(string folder)
+        {
+            if (Directory.Exists(folder))
+                Directory.Delete(folder, true);
+        }
+
+        /// <summary>
+        /// Gets all files from specified directory (including all subdirectories).
+        /// </summary>
+        private string[] Files(string folder, string pattern = "*", bool updatePaths = false)
+        {
+            var result = Directory.GetFiles(folder, pattern, SearchOption.AllDirectories);
+
+            if (updatePaths)
+            {
+                int length = !string.IsNullOrEmpty(folder) ? folder.Length : 0;
+
+                if (length > 0 && folder != null && folder[length - 1] != Path.AltDirectorySeparatorChar && folder[length - 1] != Path.DirectorySeparatorChar)
+                    length++;
+
+                // remove the 'folder' prefix from each path:
+                for (int i = 0; i < result.Length; i++)
+                {
+                    result[i] = result[i].Substring(length);
+                }
+            }
+
+            return result;
+        }
+
+        #endregion
 
         [TestInitialize]
         public void Setup()
@@ -67,6 +110,8 @@ namespace UnitTests
             {
                 using (var archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update))
                 {
+                    Assert.IsNotNull(archive.Entries);
+                    Assert.AreEqual(0, archive.Entries.Count);
                 }
             }
 
@@ -74,15 +119,13 @@ namespace UnitTests
             Assert.IsTrue(new FileInfo(InputZipFileName).Length > 0, "File shouldn't be empty!");
         }
 
-
         [TestMethod]
         public void CreateZipFileWithSomeStaticContent()
         {
             var targetFolder = Output("zip-extract");
             var entryName = "docs/NewEntry.txt";
 
-            if (Directory.Exists(targetFolder))
-                Directory.Delete(targetFolder, true);
+            Delete(targetFolder);
 
             using (var zipToOpen = new FileStream(InputZipFileName, FileMode.OpenOrCreate))
             {
@@ -106,13 +149,15 @@ namespace UnitTests
             var entryName1 = "docs/NewEntry.txt";
             var entryName2 = "credits.txt";
 
-            if (Directory.Exists(targetFolder))
-                Directory.Delete(targetFolder, true);
+            Delete(targetFolder);
 
             using (var zipToOpen = new FileStream(InputZipFileName, FileMode.OpenOrCreate))
             {
                 using (var archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update))
                 {
+                    Assert.IsNotNull(archive.Entries);
+                    Assert.AreEqual(0, archive.Entries.Count);
+
                     archive.CreateEntryFromFile(Content("app.cfg"), entryName1);
                     ZipArchiveEntry readmeEntry = archive.CreateEntry(entryName2);
                     using (StreamWriter writer = new StreamWriter(readmeEntry.Open()))
@@ -121,6 +166,9 @@ namespace UnitTests
                         writer.WriteLine("=========================================");
                     }
 
+                    Assert.IsNotNull(archive.Entries);
+                    Assert.AreEqual(2, archive.Entries.Count);
+
                     archive.ExtractToDirectory(targetFolder);
                 }
             }
@@ -128,6 +176,7 @@ namespace UnitTests
             Assert.IsTrue(File.Exists(InputZipFileName), "Missing the file, that should be created!");
             Assert.IsTrue(new FileInfo(InputZipFileName).Length > 0, "File shouldn't be empty!");
             Assert.IsTrue(Directory.Exists(targetFolder), "Missing the extraction area");
+            Assert.AreEqual(2, Files(targetFolder).Length, "Invalid number of extracted files");
         }
 
         [TestMethod]
@@ -158,8 +207,7 @@ namespace UnitTests
             var entryName1 = "docs/NewEntry.txt";
             var entryName2 = "credits.txt";
 
-            if (Directory.Exists(targetFolder))
-                Directory.Delete(targetFolder, true);
+            Delete(targetFolder);
 
             using (var zipToOpen = new FileStream(InputZipFileName, FileMode.OpenOrCreate))
             {
@@ -175,11 +223,20 @@ namespace UnitTests
                 }
             }
 
+            using (var zipToOpen = new FileStream(InputZipFileName, FileMode.Open))
+            {
+                using (var archive = new ZipArchive(zipToOpen, ZipArchiveMode.Read))
+                {
+                    archive.ExtractToDirectory(targetFolder);
+                }
+            }
+
             Assert.IsTrue(File.Exists(InputZipFileName), "Missing the file, that should be created!");
             Assert.IsTrue(new FileInfo(InputZipFileName).Length > 0, "File shouldn't be empty!");
             Assert.IsTrue(Directory.Exists(targetFolder), "Missing the extraction area");
             Assert.IsTrue(File.Exists(Output(targetFolder, entryName1)), "Missing the extracted file");
             Assert.IsTrue(File.Exists(Output(targetFolder, entryName2)), "Missing the extracted file");
+            Assert.AreEqual(2, Files(targetFolder).Length, "Invalid number of extracted files");
         }
 
         [TestMethod]
@@ -191,6 +248,9 @@ namespace UnitTests
             {
                 using (var archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update))
                 {
+                    Assert.IsNotNull(archive.Entries);
+                    Assert.IsTrue(archive.Entries.Count > 0, "Invalid number of items inside the archive found");
+
                     foreach (var entry in archive.Entries)
                     {
                         Assert.AreEqual(0, entry.Length, "Expected all files to be empty!");
@@ -202,19 +262,132 @@ namespace UnitTests
         [TestMethod]
         public void ExtractSingleFile()
         {
+            var targetFolder = Output("zip-extract4");
             var inputTarget = Content("few_content.zip");
+            int entriesCount;
+
+            Delete(targetFolder);
 
             using (var zipToOpen = new FileStream(inputTarget, FileMode.Open))
             {
-                using (var archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update))
+                using (var archive = new ZipArchive(zipToOpen, ZipArchiveMode.Read))
                 {
+                    Assert.IsNotNull(archive.Entries);
+                    Assert.IsTrue(archive.Entries.Count > 0, "Invalid number of items inside the archive found");
+
+                    entriesCount = archive.Entries.Count;
+
                     foreach (var entry in archive.Entries)
                     {
                         Assert.AreNotEqual(0, entry.Length, "Expected all files to be empty!");
-                        entry.ExtractToFile(Path.Combine(@"D:\temp\xyz", entry.FullName + ".txt"));
+                        entry.ExtractToFile(Output(targetFolder, entry.FullName + ".xyz"));
                     }
                 }
             }
+
+            Assert.IsTrue(Directory.Exists(targetFolder), "Missing the extraction area");
+            Assert.AreEqual(entriesCount, Files(targetFolder, "*.xyz").Length, "Invalid number of extracted files");
+        }
+
+        [TestMethod]
+        public void CreateZipFileWithStrangelyNamedContent()
+        {
+            var entryName1 = "docs and resources/entry.txt";
+            var entryName2 = "credits.txt";
+            var entryName3 = "readme.txt";
+            var entryName4 = "polish_żółty.txt";
+
+            using (var zipToOpen = new FileStream(InputZipFileName, FileMode.OpenOrCreate))
+            {
+                using (var archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update))
+                {
+                    archive.CreateEntry(entryName1);
+                    archive.CreateEntry(entryName2);
+                    archive.CreateEntry(entryName3);
+                    archive.CreateEntry(entryName4);
+                }
+            }
+
+            Assert.IsTrue(File.Exists(InputZipFileName), "Missing the file, that should be created!");
+            Assert.IsTrue(new FileInfo(InputZipFileName).Length > 0, "File shouldn't be empty!");
+        }
+
+        [TestMethod]
+        public void CreateZipFileAndDeleteSomeDynamicContent()
+        {
+            var entryName1 = "docs and resources/entry.txt";
+            var entryName2 = "credits.txt";
+            var entryName3 = "readme.txt";
+            var entryName4 = "polish_żółty.txt";
+
+            using (var zipToOpen = new FileStream(InputZipFileName, FileMode.OpenOrCreate))
+            {
+                using (var archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update))
+                {
+                    Assert.IsNotNull(archive.Entries);
+                    Assert.AreEqual(0, archive.Entries.Count, "Invalid number of items inside the empty archive found");
+
+                    var item1 = archive.CreateEntry(entryName1);
+                    archive.CreateEntry(entryName2);
+                    archive.CreateEntry(entryName3);
+                    var item2 = archive.CreateEntry(entryName4);
+
+                    Assert.AreEqual(4, archive.Entries.Count, "Invalid number of items inside the archive found");
+
+                    item1.Delete();
+                    item2.Delete();
+
+                    Assert.AreEqual(2, archive.Entries.Count, "Invalid number of items inside the archive found");
+                }
+            }
+
+            Assert.IsTrue(File.Exists(InputZipFileName), "Missing the file, that should be created!");
+            Assert.IsTrue(new FileInfo(InputZipFileName).Length > 0, "File shouldn't be empty!");
+        }
+
+        [TestMethod]
+        public void CreateZipFileAndDeleteAllThenAddSomeContentAgain()
+        {
+            var entryName1 = "docs and resources/entry.txt";
+            var entryName2 = "credits.txt";
+            var entryName3 = "readme.txt";
+            var entryName4 = "polish_żółty.txt";
+            var entryName5 = "t1.txt";
+            var entryName6 = "t2.txt";
+
+            using (var zipToOpen = new FileStream(InputZipFileName, FileMode.OpenOrCreate))
+            {
+                using (var archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update))
+                {
+                    Assert.IsNotNull(archive.Entries);
+                    Assert.AreEqual(0, archive.Entries.Count, "Invalid number of items inside the empty archive found");
+
+                    // add items:
+                    var item1 = archive.CreateEntry(entryName1);
+                    var item2 = archive.CreateEntry(entryName2);
+                    var item3 = archive.CreateEntry(entryName3);
+                    var item4 = archive.CreateEntry(entryName4);
+
+                    Assert.AreEqual(4, archive.Entries.Count, "Invalid number of items inside the archive found");
+
+                    // remove all:
+                    item1.Delete();
+                    item2.Delete();
+                    item3.Delete();
+                    item4.Delete();
+
+                    Assert.AreEqual(0, archive.Entries.Count, "Invalid number of items inside the empty archive found");
+
+                    // add agian:
+                    archive.CreateEntry(entryName5);
+                    archive.CreateEntry(entryName6);
+
+                    Assert.AreEqual(2, archive.Entries.Count, "Invalid number of items inside the archive found");
+                }
+            }
+
+            Assert.IsTrue(File.Exists(InputZipFileName), "Missing the file, that should be created!");
+            Assert.IsTrue(new FileInfo(InputZipFileName).Length > 0, "File shouldn't be empty!");
         }
     }
 }

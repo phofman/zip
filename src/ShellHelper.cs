@@ -18,7 +18,7 @@ namespace System.IO.Compression
             /// <summary>
             /// Init constructor.
             /// </summary>
-            public ReflectionWrapper(object o)
+            protected ReflectionWrapper(object o)
             {
                 if (o == null)
                     throw new ArgumentNullException("o");
@@ -89,6 +89,9 @@ namespace System.IO.Compression
 
             #region Properties
 
+            /// <summary>
+            /// Full path represented by this folder (or ZIP archive).
+            /// </summary>
             public string Path
             {
                 get;
@@ -113,41 +116,19 @@ namespace System.IO.Compression
                 return new FolderItems(InvokeMethod("Items"));
             }
 
-            public void Copy(ReflectionWrapper items, bool waitForCompletion, Action<Folder> completionHandler)
+            /// <summary>
+            /// Copies specified items (single file or collection) into current folder or ZIP archive.
+            /// </summary>
+            public void Copy(ReflectionWrapper items)
             {
                 const int NoProgressDialog = 4;
                 const int RespondYesToAllDialogs = 16;
                 const int NoUiOnError = 1024;
 
+                // HINT: somehow flags about UI are ignored and if operation takes a bit more time (from several seconds up)
+                //       shell will display the progress with option to cancel
+                // HINT: this call is asynchronous and starts another thread without any way to easily monitor progress
                 InvokeMethod("CopyHere", items.WrappedObject, NoProgressDialog | RespondYesToAllDialogs | NoUiOnError);
-                if (waitForCompletion)
-                {
-                    Wait();
-                    if (completionHandler != null)
-                    {
-                        completionHandler(this);
-                    }
-                }
-                else
-                {
-                    if (completionHandler != null)
-                    {
-                        var execAction = new Action<string>(WaitForCompletion);
-                        execAction.BeginInvoke(Path, StartCopyMonitorCompleted, execAction);
-                    }
-                }
-            }
-
-            public void Wait()
-            {
-                WaitForCompletion(Path);
-            }
-
-            private void StartCopyMonitorCompleted(IAsyncResult ar)
-            {
-                // release async-call system resources:
-                var action = (Action<string>) ar.AsyncState;
-                action.EndInvoke(ar);
             }
         }
 
@@ -162,11 +143,17 @@ namespace System.IO.Compression
             {
             }
 
+            /// <summary>
+            /// Gets the number of items.
+            /// </summary>
             public int Count
             {
                 get { return GetProperty<int>("Count"); }
             }
 
+            /// <summary>
+            /// Gets item at specified index.
+            /// </summary>
             public FolderItem this[int index]
             {
                 get { return new FolderItem(InvokeMethod("Item", index)); }
@@ -184,27 +171,42 @@ namespace System.IO.Compression
             {
             }
 
+            /// <summary>
+            /// Checks if given item is a folder.
+            /// </summary>
             public bool IsFolder
             {
                 get { return GetProperty<bool>("IsFolder"); }
             }
 
+            /// <summary>
+            /// Gets or sets the name.
+            /// </summary>
             public string Name
             {
                 get { return GetProperty<string>("Name"); }
                 set { SetProperty("Name", value); }
             }
 
+            /// <summary>
+            /// Gets the size.
+            /// </summary>
             public long Size
             {
                 get { return GetProperty<int>("Size"); }
             }
 
+            /// <summary>
+            /// Gets the full path of an item. If it's inside the ZIP archive, it will be prefixed with the path to that ZIP.
+            /// </summary>
             public string Path
             {
                 get { return GetProperty<string>("Path"); }
             }
 
+            /// <summary>
+            /// Gets the folder representation of an item (if it's actually a folder) or null.
+            /// </summary>
             public Folder AsFolder
             {
                 get
@@ -228,11 +230,6 @@ namespace System.IO.Compression
             {
                 return Path;
             }
-
-            public void Wait(string path)
-            {
-                WaitForCompletion(path);
-            }
         }
 
         /// <summary>
@@ -250,12 +247,15 @@ namespace System.IO.Compression
             return new Folder(shellAppType.InvokeMember("NameSpace", BindingFlags.InvokeMethod, null, shell, new object[] { path }), path);
         }
 
-        private static void WaitForCompletion(string fileName)
+        /// <summary>
+        /// Waits until specified file is not in use.
+        /// </summary>
+        public static void WaitForCompletion(string fileName)
         {
-            Thread.Sleep(1000);
+            Thread.Sleep(300);
             while (File.Exists(fileName) && IsInUse(fileName))
             {
-                Thread.Sleep(500);
+                Thread.Sleep(100);
             }
         }
 

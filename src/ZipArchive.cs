@@ -5,6 +5,7 @@ namespace System.IO.Compression
 {
     /// <summary>
     /// Class representing ZIP archive.
+    /// https://msdn.microsoft.com/en-us/library/system.io.compression.ziparchive(v=vs.110).aspx
     /// </summary>
     public sealed class ZipArchive : IDisposable
     {
@@ -12,7 +13,7 @@ namespace System.IO.Compression
         private readonly string _tempFolder;
         private readonly ZipArchiveMode _mode;
 
-        private IList<ZipArchiveEntry> _existing;
+        private readonly IList<ZipArchiveEntry> _existing;
         private readonly List<ZipArchiveEntry> _toAdd;
 
         /// <summary>
@@ -175,7 +176,8 @@ namespace System.IO.Compression
             var items = srcFolder.Items();
 
             // copy folder into a ZIP file using Windows Shell API
-            destFile.Copy(items, true, null);
+            destFile.Copy(items);
+            ShellHelper.WaitForCompletion(destFile.Path);
         }
 
         private void UnzipContent(string targetFolder)
@@ -186,8 +188,8 @@ namespace System.IO.Compression
             var srcFile = ShellHelper.GetShell32Folder(_zipFileName);
             var destFolder = ShellHelper.GetShell32Folder(targetFolder);
 
-            destFolder.Copy(srcFile.Items(), false, null);
-            srcFile.Wait();
+            destFolder.Copy(srcFile.Items());
+            ShellHelper.WaitForCompletion(srcFile.Path);
         }
 
         private void CopyAddedFiles(string targetFolder)
@@ -379,9 +381,9 @@ namespace System.IO.Compression
                     }
 
                     // TODO: this could potentially overwrite existing file
-                    destination.Copy(item.Item, false, null);
+                    destination.Copy(item.Item);
                     var path = Path.Combine(destFolder, item.Name);
-                    item.Item.Wait(path);
+                    ShellHelper.WaitForCompletion(path);
 
                     // update the name to required one:
                     if (path != destinationFileName)

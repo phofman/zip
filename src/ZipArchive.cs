@@ -295,13 +295,13 @@ namespace System.IO.Compression
             {
                 var srcFolder = ShellHelper.GetShell32Folder(zipFileName);
 
-                ScanAdd(result, zipFileName.Length + 1, srcFolder.Items());
+                ScanAdd(result, zipFileName, srcFolder.Items());
             }
 
             return result;
         }
 
-        private void ScanAdd(List<ZipArchiveEntry> result, int skipCharsInPath, ShellHelper.FolderItems items)
+        private void ScanAdd(List<ZipArchiveEntry> result, string initialPath, ShellHelper.FolderItems items)
         {
             if (items != null)
             {
@@ -312,11 +312,14 @@ namespace System.IO.Compression
                     var folder = item.AsFolder;
                     if (folder != null)
                     {
-                        ScanAdd(result, skipCharsInPath, folder.Items());
+                        ScanAdd(result, initialPath, folder.Items());
                     }
                     else
                     {
-                        result.Add(new ZipArchiveEntry(this, item, null, item.Path.Substring(skipCharsInPath), item.Size));
+                        var path = item.Path;
+                        if (path != null && path.StartsWith(initialPath, StringComparison.Ordinal))
+                            path = path.Substring(initialPath.Length + 1);
+                        result.Add(new ZipArchiveEntry(this, item, null, path, item.Size));
                     }
                 }
             }

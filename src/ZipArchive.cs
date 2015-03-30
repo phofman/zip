@@ -89,17 +89,20 @@ namespace System.IO.Compression
         {
             try
             {
-                switch (_mode)
+                if (disposing)
                 {
-                    case ZipArchiveMode.Create: // fall-though
-                    case ZipArchiveMode.Update:
-                        ZipContent();
-                        break;
-                    case ZipArchiveMode.Read:
-                        // do nothing...
-                        break;
-                    default:
-                        throw new IOException("Unsupported mode to update the archive on disposing");
+                    switch (_mode)
+                    {
+                        case ZipArchiveMode.Create: // fall-though
+                        case ZipArchiveMode.Update:
+                            ZipContent();
+                            break;
+                        case ZipArchiveMode.Read:
+                            // do nothing...
+                            break;
+                        default:
+                            throw new IOException("Unsupported mode to update the archive on disposing");
+                    }
                 }
             }
             catch

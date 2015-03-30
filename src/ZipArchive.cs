@@ -236,6 +236,17 @@ namespace System.IO.Compression
             if (string.IsNullOrEmpty(entryName))
                 throw new ArgumentNullException("entryName");
 
+            // remove leading directory separators:
+            int i = 0;
+            while (i < entryName.Length && (entryName[i] == Path.AltDirectorySeparatorChar || entryName[i] == Path.DirectorySeparatorChar))
+                i++;
+
+            if (i > 0)
+            {
+                entryName = entryName.Substring(i);
+            }
+
+            // and make sure the same separator is used across the whole entry name's path:
             return entryName.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
         }
 
